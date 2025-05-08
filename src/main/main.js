@@ -9,7 +9,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 let mediaFolder = 'D:/music-videos'; // ruta seleccionada
-let videoWindow = null;
+let playerWindow = null;
 
 const getMediaFolder = () => mediaFolder;
 
@@ -73,40 +73,53 @@ const createWindow = () => {
   mainWindow.loadURL('http://localhost:5173'); // o tu build de React
 };
 
+function createPlayerWindow() {
+  if (playerWindow) {
+    playerWindow.focus();
+    return;
+  }
+
+  playerWindow = new BrowserWindow({
+    width: 800,
+    height: 600,
+    fullscreen: true,
+    webPreferences: {
+      preload: path.join(__dirname, 'preload.js'),
+    },
+  });
+
+  playerWindow.loadURL('http://localhost:5173/player');
+
+  playerWindow.on('closed', () => {
+    playerWindow = null;
+  });
+}
+
 ipcMain.handle('get-video-names', async () => {
   const files = fs
     .readdirSync(getMediaFolder())
     .filter((file) => /\.(mp4|webm|ogg)$/.test(file));
   return files; // Devuelve lista de nombres
 });
+// Abrir reproductor
+ipcMain.on('open-video-window', () => {
+  createPlayerWindow();
+});
 
-ipcMain.handle('open-video-window', (event, filename) => {
-  const sendToRenderer = () => {
-    videoWindow?.webContents.send('set-video', filename);
-    videoWindow?.focus();
+// Recibir evento de "video terminado"
+ipcMain.on('video-ended', () => {
+  mainWindow?.webContents.send('player-ended-video');
+});
+
+ipcMain.on('play-video', (_, video) => {
+  if (!playerWindow) return;
+  const sendVideo = () => {
+    playerWindow?.webContents.send('play-video', video);
   };
-
-  if (videoWindow && !videoWindow.isDestroyed()) {
-    // Si ya existe, recargar con nuevo video y enfocar
-    sendToRenderer();
+  if (playerWindow.webContents.isLoading()) {
+    playerWindow.webContents.once('did-finish-load', sendVideo);
   } else {
-    // Crear nueva ventana
-    videoWindow = new BrowserWindow({
-      width: 800,
-      height: 600,
-      title: filename,
-      webPreferences: {
-        preload: path.join(__dirname, 'preload.js'),
-      },
-    });
-    videoWindow.loadURL(`http://localhost:5173/video`);
-
-    videoWindow.on('ready-to-show', sendToRenderer);
-
-    // Cuando se cierre, limpiar la referencia
-    videoWindow.on('closed', () => {
-      videoWindow = null;
-    });
+    sendVideo();
   }
 });
 

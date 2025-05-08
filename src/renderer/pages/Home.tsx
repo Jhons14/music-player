@@ -11,6 +11,7 @@ export default function VideoPlayerWithPlaylist() {
   const [videoList, setVideoList] = useState<Video[]>([]);
   const [playlist, setPlaylist] = useState<Video[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
+  const currentVideo = playlist[currentIndex];
 
   // Obtener lista de videos del backend
   useEffect(() => {
@@ -21,10 +22,15 @@ export default function VideoPlayerWithPlaylist() {
   }, []);
 
   useEffect(() => {
-    (async () => {
-      setVideoList(await window.electronAPI.getVideoNames());
-    })();
-  }, []);
+    window.electronAPI.onVideoEndedFromPlayer(() => {
+      if (currentIndex + 1 < playlist.length) {
+        const nextIndex = currentIndex + 1;
+        setCurrentIndex(nextIndex);
+        const nextVideo = playlist[nextIndex];
+        window.electronAPI.sendVideoToPlayer(nextVideo);
+      }
+    });
+  }, [currentIndex, playlist]);
 
   // Agregar a la playlist
   const addToPlaylist = (video: Video) => {
@@ -41,47 +47,38 @@ export default function VideoPlayerWithPlaylist() {
     }
   };
 
-  // Ir al siguiente video
-  const playNext = () => {
-    if (currentIndex + 1 < playlist.length) {
-      setCurrentIndex(currentIndex + 1);
-    }
+  const handleStart = () => {
+    if (!currentVideo) return;
+    window.electronAPI.openVideoWindow();
+    window.electronAPI.sendVideoToPlayer(currentVideo);
   };
 
-  const currentVideo = playlist[currentIndex];
-
   return (
-    <div className='p-4 space-y-6'>
-      {/* Reproductor */}
-      {/* {currentVideo ? (
-        <div className='w-full'>
-          <h2 className='mb-2 font-bold'>{currentVideo.name}</h2>
-          <video
-            key={currentVideo.id}
-            src={`http://localhost:3001${currentVideo.url}`}
-            controls
-            autoPlay
-            onEnded={playNext}
-            className='w-full max-h-[60vh]'
-          />
-        </div>
-      ) : (
-        <p>No hay video en reproducción</p>
-      )} */}
-
+    <div className='p-4 space-y-6 bg-black/85 h-screen text-white grid grid-cols-2 gap-20 justify-between'>
+      {/* Todos los videos disponibles */}
+      <div className='flex flex-col'>
+        <h3 className='text-lg font-semibold'>📁 Biblioteca</h3>
+        <ul className='space-y-2 '>
+          {videoList.map((video) => (
+            <li key={video.id} className='flex justify-between items-center '>
+              <span>{video.name}</span>
+              <button
+                className='cursor-pointer transition duration-500 hover:scale-120'
+                onClick={() => {
+                  addToPlaylist(video);
+                }}
+              >
+                ➕
+              </button>
+            </li>
+          ))}
+        </ul>
+      </div>
       {/* Playlist actual */}
       <div>
-        <h3
-          onClick={() => {
-            fetch('http://localhost:3001/api/videos')
-              .then(async (res) => await res.json())
-              .then((data) => setVideoList(data))
-              .catch((err) => console.error('Error loading videos:', err));
-          }}
-          className='text-lg font-semibold'
-        >
-          🎵 Playlist
-        </h3>
+        <button onClick={handleStart}>▶️ Iniciar reproducción</button>
+
+        <h3 className='text-lg font-semibold'>🎵 Playlist</h3>
         <ul className='space-y-2'>
           {playlist.map((video, index) => (
             <li key={video.id} className='flex justify-between items-center'>
@@ -94,26 +91,6 @@ export default function VideoPlayerWithPlaylist() {
                 {video.name}
               </button>
               <button onClick={() => removeFromPlaylist(index)}>❌</button>
-            </li>
-          ))}
-        </ul>
-      </div>
-
-      {/* Todos los videos disponibles */}
-      <div>
-        <h3 className='text-lg font-semibold'>📁 Biblioteca</h3>
-        <ul className='space-y-2'>
-          {videoList.map((video) => (
-            <li key={video.id} className='flex justify-between items-center'>
-              <span>{video.name}</span>
-              <button
-                onClick={() => {
-                  addToPlaylist(video);
-                  window.electronAPI.openVideoWindow(currentVideo);
-                }}
-              >
-                ➕ Añadir
-              </button>
             </li>
           ))}
         </ul>

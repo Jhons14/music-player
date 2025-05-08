@@ -7,7 +7,7 @@ function App() {
     <BrowserRouter>
       <Routes>
         <Route path='/' element={<Home />} />
-        <Route path='/video' element={<VideoPlayerPage />} />
+        <Route path='/player' element={<VideoPlayerPage />} />
       </Routes>
     </BrowserRouter>
   );
