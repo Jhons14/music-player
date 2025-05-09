@@ -47,53 +47,73 @@ export default function VideoPlayerWithPlaylist() {
     }
   };
 
-  const handleStart = () => {
+  const handleStart = (video: Video) => {
     if (!currentVideo) return;
     window.electronAPI.openVideoWindow();
-    window.electronAPI.sendVideoToPlayer(currentVideo);
+    window.electronAPI.sendVideoToPlayer(video);
+  };
+
+  const handleSelectVideo = (index: number) => {
+    setCurrentIndex(index);
+    console.log(currentVideo);
+    console.log(playlist[index]);
+
+    handleStart(playlist[index]);
   };
 
   return (
-    <div className='p-4 space-y-6 bg-black/85 h-screen text-white grid grid-cols-2 gap-20 justify-between'>
-      {/* Todos los videos disponibles */}
-      <div className='flex flex-col'>
-        <h3 className='text-lg font-semibold'>📁 Biblioteca</h3>
-        <ul className='space-y-2 '>
-          {videoList.map((video) => (
-            <li key={video.id} className='flex justify-between items-center '>
-              <span>{video.name}</span>
-              <button
-                className='cursor-pointer transition duration-500 hover:scale-120'
-                onClick={() => {
-                  addToPlaylist(video);
-                }}
-              >
-                ➕
-              </button>
-            </li>
-          ))}
-        </ul>
-      </div>
-      {/* Playlist actual */}
-      <div>
-        <button onClick={handleStart}>▶️ Iniciar reproducción</button>
+    <div className='flex flex-col bg-black/85 h-screen text-white  items-center'>
+      <button
+        className='cursor-pointer'
+        onClick={() => handleStart(currentVideo)}
+      >
+        ▶️ Iniciar reproducción
+      </button>
 
-        <h3 className='text-lg font-semibold'>🎵 Playlist</h3>
-        <ul className='space-y-2'>
-          {playlist.map((video, index) => (
-            <li key={video.id} className='flex justify-between items-center'>
-              <button
-                className={`text-left ${
-                  index === currentIndex ? 'font-bold text-blue-600' : ''
-                }`}
-                onClick={() => setCurrentIndex(index)}
-              >
-                {video.name}
-              </button>
-              <button onClick={() => removeFromPlaylist(index)}>❌</button>
-            </li>
-          ))}
-        </ul>
+      <div className='p-4 space-y-6 w-full grid grid-cols-2 gap-20 justify-between'>
+        {/* Todos los videos disponibles */}
+        <div className='flex flex-col'>
+          <h3 className='text-lg font-semibold'>📁 Biblioteca</h3>
+          <ul className='space-y-2 '>
+            {videoList.map((video) => (
+              <li key={video.id} className='flex justify-between items-center '>
+                <span>{video.name}</span>
+                <button
+                  className='cursor-pointer transition duration-500 hover:scale-120'
+                  onClick={() => {
+                    addToPlaylist(video);
+                  }}
+                >
+                  ➕
+                </button>
+              </li>
+            ))}
+          </ul>
+        </div>
+        {/* Playlist actual */}
+        <div>
+          <h3 className='text-lg font-semibold'>🎵 Playlist</h3>
+          <ul className='space-y-2'>
+            {playlist.map((video, index) => (
+              <li key={video.id} className='flex justify-between items-center '>
+                <button
+                  className={`text-left cursor-pointer ${
+                    index === currentIndex ? 'font-bold text-blue-600' : ''
+                  }`}
+                  onClick={() => handleSelectVideo(index)}
+                >
+                  {video.name}
+                </button>
+                <button
+                  className='cursor-pointer transition duration-500 hover:scale-120'
+                  onClick={() => removeFromPlaylist(index)}
+                >
+                  ❌
+                </button>
+              </li>
+            ))}
+          </ul>
+        </div>
       </div>
     </div>
   );
