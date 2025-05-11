@@ -1,5 +1,6 @@
 // VideoPlayerWithPlaylist.tsx
 import { useEffect, useState } from 'react';
+import { FaCirclePlay } from 'react-icons/fa6';
 
 type Video = {
   id: string;
@@ -62,14 +63,7 @@ export default function VideoPlayerWithPlaylist() {
   };
 
   return (
-    <div className='flex flex-col bg-black/85 h-screen text-white  items-center'>
-      <button
-        className='cursor-pointer'
-        onClick={() => handleStart(currentVideo)}
-      >
-        ▶️ Iniciar reproducción
-      </button>
-
+    <div className='relative flex flex-col bg-black/85 h-screen text-white items-center'>
       <div className='p-4 space-y-6 w-full grid grid-cols-2 gap-20 justify-between'>
         {/* Todos los videos disponibles */}
         <div className='flex flex-col'>
@@ -114,6 +108,14 @@ export default function VideoPlayerWithPlaylist() {
             ))}
           </ul>
         </div>
+      </div>
+      <div className='absolute bottom-4'>
+        <button
+          className='cursor-pointer  hover:scale-110 transition duration-200 rounded-full hover:border-2 hover:p-1 border-amber-300'
+          onClick={() => handleStart(currentVideo)}
+        >
+          <FaCirclePlay size={40} />
+        </button>
       </div>
     </div>
   );
