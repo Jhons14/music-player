@@ -82,7 +82,6 @@ function createPlayerWindow() {
   playerWindow = new BrowserWindow({
     width: 800,
     height: 600,
-    fullscreen: true,
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
     },
@@ -121,6 +120,10 @@ ipcMain.on('play-video', (_, video) => {
   } else {
     sendVideo();
   }
+});
+
+ipcMain.on('player-command', (_event, command) => {
+  playerWindow?.webContents.send('player-command', command);
 });
 
 app.whenReady().then(() => {

@@ -16,7 +16,31 @@ export default function VideoPlayerPage() {
 
   const [bannerState, setBannerState] = useState<BannerState>('hidden');
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
-  console.log(bannerState);
+
+  useEffect(() => {
+    window.electronAPI.onPlayVideo(setVideo);
+    window.electronAPI.onPlayerCommand((command) => {
+      if (!videoRef.current) return;
+
+      switch (command.type) {
+        case 'pause':
+          videoRef.current.pause();
+          break;
+        case 'play':
+          videoRef.current.play();
+          break;
+        case 'seek':
+          videoRef.current.currentTime += command.payload;
+          break;
+        case 'previous':
+          window.electronAPI.notifyPreviousRequested();
+          break;
+        case 'next':
+          window.electronAPI.notifyNextRequested();
+          break;
+      }
+    });
+  }, []);
 
   useEffect(() => {
     if (!video?.name) return;
@@ -66,41 +90,38 @@ export default function VideoPlayerPage() {
     exiting: 'opacity-0 scale-x-0',
   };
 
-  useEffect(() => {
-    window.electronAPI.onPlayVideo(setVideo);
-  }, []);
-
-  if (!video) return <p>Esperando video...</p>;
-
   return (
     <div className='flex flex-col items-center justify-center h-screen bg-black'>
-      <div className='relative w-full h-full aspect-video overflow-hidden rounded-2xl shadow-lg'>
-        {/* Spinner */}
-        {isLoading && (
-          <div className='absolute inset-0 flex items-center justify-center bg-black bg-opacity-70 '>
-            <div className='animate-spin rounded-full h-12 w-12 border-t-2 border-white'></div>
-          </div>
-        )}
-        <AnimatePresence mode='wait'>
-          <div id='video-container' className='relative w-full h-full'>
-            <div
-              key={video.name}
-              className={`absolute flex bottom-2 left-0 z-20
-      transform origin-left transition-all duration-1000 ease-in-out w-160 h-25 items-center border-2 border-dashed bg-white/80 rounded-r-full shadow-2xl
+      {!video ? (
+        <p className='text-white'>No hay videos para reproducir</p>
+      ) : (
+        <div className='relative w-full h-full aspect-video overflow-hidden rounded-2xl shadow-lg'>
+          {/* Spinner */}
+          {isLoading && (
+            <div className='absolute inset-0 flex items-center justify-center bg-black bg-opacity-70 '>
+              <div className='animate-spin rounded-full h-12 w-12 border-t-2 border-white'></div>
+            </div>
+          )}
+          <AnimatePresence mode='wait'>
+            <div id='video-container' className='relative w-full h-full'>
+              <div
+                key={video.name}
+                className={`absolute flex bottom-2 left-0 z-20
+      transform origin-left transition-all duration-1000 ease-in-out w-160 h-25 items-center border-2  bg-white/80 rounded-r-full shadow-2xl
       ${Bannerclasses[bannerState]}`}
-            >
-              <img
-                className={`absolute w-80 h-40 -top-9 -left-8 transition-opacity duration-700 delay-300 ${
-                  bannerState === 'entering' || bannerState === 'visible'
-                    ? 'opacity-100'
-                    : 'opacity-0'
-                }`}
-                src={ProfugosLogo}
-                alt='logo'
-              />
-              <div className='flex absolute items-center text-center w-98 right-2'>
-                <span
-                  className={`
+              >
+                <img
+                  className={`absolute w-80 h-40 -top-9 -left-8 transition-opacity duration-700 delay-300 ${
+                    bannerState === 'entering' || bannerState === 'visible'
+                      ? 'opacity-100'
+                      : 'opacity-0'
+                  }`}
+                  src={ProfugosLogo}
+                  alt='logo'
+                />
+                <div className='flex absolute items-center text-center w-98 right-2'>
+                  <span
+                    className={`
             transition-opacity duration-700 delay-300 w-full text-xl font-semibold
             ${
               bannerState === 'entering' || bannerState === 'visible'
@@ -108,47 +129,47 @@ export default function VideoPlayerPage() {
                 : 'opacity-0'
             }
           `}
-                >
-                  {video.name}
-                </span>
+                  >
+                    {video.name}
+                  </span>
+                </div>
               </div>
+
+              {/* 🎬 Reproductor con animación y controles */}
+              {video?.url && videoReady && (
+                <motion.div
+                  key={video?.id}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.5 }}
+                  className='absolute w-full h-full'
+                >
+                  <video
+                    ref={videoRef}
+                    src={`http://localhost:3001${video?.url}`}
+                    autoPlay
+                    onEnded={() => window.electronAPI.notifyVideoEnded()}
+                    className='w-full h-full object-cover'
+                  />
+                </motion.div>
+              )}
             </div>
+          </AnimatePresence>
 
-            {/* 🎬 Reproductor con animación y controles */}
-            {video?.url && videoReady && (
-              <motion.div
-                key={video?.id}
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: 0.5 }}
-                className='absolute w-full h-full'
-              >
-                <video
-                  ref={videoRef}
-                  src={`http://localhost:3001${video?.url}`}
-                  autoPlay
-                  controls
-                  onEnded={() => window.electronAPI.notifyVideoEnded()}
-                  className='w-full h-full object-cover'
-                />
-              </motion.div>
-            )}
-          </div>
-        </AnimatePresence>
-
-        {/* Precarga oculta */}
-        {video?.url && !videoReady && (
-          <video
-            src={`http://localhost:3001${video?.url}`}
-            className='hidden'
-            onLoadedData={() => {
-              setVideoReady(true);
-              setIsLoading(false);
-            }}
-          />
-        )}
-      </div>
+          {/* Precarga oculta */}
+          {video?.url && !videoReady && (
+            <video
+              src={`http://localhost:3001${video?.url}`}
+              className='hidden'
+              onLoadedData={() => {
+                setVideoReady(true);
+                setIsLoading(false);
+              }}
+            />
+          )}
+        </div>
+      )}
     </div>
   );
 }
