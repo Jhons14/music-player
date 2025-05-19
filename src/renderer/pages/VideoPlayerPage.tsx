@@ -3,6 +3,11 @@ import { motion, AnimatePresence } from 'framer-motion';
 import ProfugosLogo from '../assets/profugos-logo.png';
 
 export default function VideoPlayerPage() {
+  type BannerState = 'hidden' | 'visible' | 'entering' | 'exiting';
+  type commandType = {
+    type: 'pause' | 'play' | 'seek' | 'mute' | 'unmute';
+    payload: number;
+  };
   type VideoType = {
     id: string;
     name: string;
@@ -19,9 +24,8 @@ export default function VideoPlayerPage() {
 
   useEffect(() => {
     window.electronAPI.onPlayVideo(setVideo);
-    window.electronAPI.onPlayerCommand((command) => {
+    window.electronAPI.onPlayerCommand((command: commandType) => {
       if (!videoRef.current) return;
-
       switch (command.type) {
         case 'pause':
           videoRef.current.pause();
@@ -32,11 +36,17 @@ export default function VideoPlayerPage() {
         case 'seek':
           videoRef.current.currentTime += command.payload;
           break;
-        case 'previous':
-          window.electronAPI.notifyPreviousRequested();
+        case 'mute':
+          videoRef.current.muted = true;
+          window.electronAPI.notifyPlayerStatus({
+            muted: true,
+          });
           break;
-        case 'next':
-          window.electronAPI.notifyNextRequested();
+        case 'unmute':
+          videoRef.current.muted = false;
+          window.electronAPI.notifyPlayerStatus({
+            muted: false,
+          });
           break;
       }
     });
@@ -149,8 +159,21 @@ export default function VideoPlayerPage() {
                     ref={videoRef}
                     src={`http://localhost:3001${video?.url}`}
                     autoPlay
-                    onEnded={() => window.electronAPI.notifyVideoEnded()}
+                    onEnded={() =>
+                      window.electronAPI.notifyVideoEndedFromPlayer()
+                    }
                     className='w-full h-full object-cover'
+                    onPause={() =>
+                      window.electronAPI.notifyPlayerStatus({
+                        playing: false,
+                      })
+                    }
+                    onPlay={() =>
+                      window.electronAPI.notifyPlayerStatus({
+                        playing: true,
+                      })
+                    }
+                    controls
                   />
                 </motion.div>
               )}

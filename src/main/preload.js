@@ -1,18 +1,21 @@
 const { contextBridge, ipcRenderer } = require('electron');
 
 contextBridge.exposeInMainWorld('electronAPI', {
-  openVideoWindow: () => ipcRenderer.send('open-video-window'),
-  // onSetVideo: (callback) =>
-  //   ipcRenderer.on('set-video', (_event, video) => callback(video)),
   onPlayVideo: (cb) => ipcRenderer.on('play-video', (_, video) => cb(video)),
   onVideoEndedFromPlayer: (cb) => ipcRenderer.on('player-ended-video', cb),
+  onPlayerCommand: (cb) =>
+    ipcRenderer.on('player-command', (_event, command) => cb(command)),
+  onPlayerStatus: (cb) =>
+    ipcRenderer.on('player-status', (_event, status) => cb(status)),
+  onWindowPlayerChange: (cb) =>
+    ipcRenderer.on('playerWindow-status', (_event, windowStatus) =>
+      cb(windowStatus)
+    ),
 
+  openVideoWindow: () => ipcRenderer.send('open-video-window'),
   sendVideoToPlayer: (video) => ipcRenderer.send('play-video', video),
-  notifyVideoEnded: () => ipcRenderer.send('video-ended'),
-
+  notifyPlayerStatus: (status) => ipcRenderer.send('player-status', status),
   sendPlayerCommand: (command) => ipcRenderer.send('player-command', command),
-  onPlayerCommand: (callback) =>
-    ipcRenderer.on('player-command', (_event, command) => callback(command)),
-  notifyPreviousRequested: () => ipcRenderer.send('request-previous-video'),
-  notifyNextRequested: () => ipcRenderer.send('request-next-video'),
+  notifyVideoEndedFromPlayer: (command) =>
+    ipcRenderer.send('video-ended', command),
 });

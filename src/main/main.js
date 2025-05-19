@@ -9,7 +9,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 let mediaFolder = 'D:/music-videos'; // ruta seleccionada
-let playerWindow = null;
+let playerWindow;
 
 const getMediaFolder = () => mediaFolder;
 
@@ -88,18 +88,18 @@ function createPlayerWindow() {
   });
 
   playerWindow.loadURL('http://localhost:5173/player');
+  if (mainWindow?.webContents && !mainWindow.webContents.isDestroyed()) {
+    mainWindow.webContents.send('playerWindow-status', 'opened');
+  }
 
   playerWindow.on('closed', () => {
     playerWindow = null;
+    if (mainWindow?.webContents && !mainWindow.webContents.isDestroyed()) {
+      mainWindow.webContents.send('playerWindow-status', 'closed');
+    }
   });
 }
 
-ipcMain.handle('get-video-names', async () => {
-  const files = fs
-    .readdirSync(getMediaFolder())
-    .filter((file) => /\.(mp4|webm|ogg)$/.test(file));
-  return files; // Devuelve lista de nombres
-});
 // Abrir reproductor
 ipcMain.on('open-video-window', () => {
   createPlayerWindow();
@@ -111,7 +111,7 @@ ipcMain.on('video-ended', () => {
 });
 
 ipcMain.on('play-video', (_, video) => {
-  if (!playerWindow) return;
+  if (!playerWindow || playerWindow.isDestroyed()) return;
   const sendVideo = () => {
     playerWindow?.webContents.send('play-video', video);
   };
@@ -124,6 +124,10 @@ ipcMain.on('play-video', (_, video) => {
 
 ipcMain.on('player-command', (_event, command) => {
   playerWindow?.webContents.send('player-command', command);
+});
+
+ipcMain.on('player-status', (_event, playerStatus) => {
+  mainWindow?.webContents.send('player-status', playerStatus);
 });
 
 app.whenReady().then(() => {
